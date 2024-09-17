@@ -1,0 +1,58 @@
+import web3 from './web3';
+import realEstateContract from './contract';
+
+const blockchainService = {
+  fetchMyProperties: async () => {
+    const accounts = await web3.eth.getAccounts();
+    const properties = await realEstateContract.methods.getPropertiesByOwner(accounts[0]).call();
+    // 格式化数据
+    return properties.map((property) => ({
+      id: property.id,
+      location: property.location,
+      area: property.area,
+      houseType: property.houseType,
+    }));
+  },
+  listProperty: async (propertyId, price, isForRent) => {
+    const accounts = await web3.eth.getAccounts();
+    await realEstateContract.methods.listProperty(propertyId, price, isForRent)
+      .send({ from: accounts[0] });
+  },
+  fetchListedProperties: async (isForRent) => {
+    const properties = await realEstateContract.methods.getListedProperties(isForRent).call();
+    return properties.map((property) => ({
+      id: property.id,
+      location: property.location,
+      area: property.area,
+      houseType: property.houseType,
+      price: property.price,
+      isForRent: property.isForRent,
+    }));
+  },
+  purchaseProperty: async (propertyId, price, isForRent) => {
+    const accounts = await web3.eth.getAccounts();
+    if (isForRent) {
+      await realEstateContract.methods.rentEstate(propertyId)
+        .send({ from: accounts[0], value: price });
+    } else {
+      await realEstateContract.methods.buyEstate(propertyId)
+        .send({ from: accounts[0], value: price });
+    }
+  },
+  fetchMyContracts: async () => {
+    const accounts = await web3.eth.getAccounts();
+    const contracts = await realEstateContract.methods.getContractsByUser(accounts[0]).call();
+    // 格式化数据
+    return contracts.map((contract) => ({
+      id: contract.id,
+      propertyId: contract.propertyId,
+      type: contract.isForRent ? '租赁' : '购买',
+      status: contract.isActive ? '进行中' : '已完成',
+      date: new Date(contract.date * 1000).toLocaleDateString(),
+    }));
+  },
+  
+  
+};
+
+export default blockchainService;
